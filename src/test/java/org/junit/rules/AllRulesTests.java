@@ -11,6 +11,7 @@ import org.junit.runners.Suite.SuiteClasses;
         DisableOnDebugTest.class,
         ExpectedExceptionTest.class,
         ExternalResourceRuleTest.class,
+        InterceptOutputStreamsTest.class,
         MethodRulesTest.class,
         NameRulesTest.class,
         RuleChainTest.class,
