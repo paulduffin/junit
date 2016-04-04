@@ -21,6 +21,10 @@ public class RunTests {
         return new RunClassWithCore();
     }
 
+    public static RunTest<Runner> runRunner() {
+        return new RunRunner();
+    }
+
     private static void runRunner(Runner runner, Comparator<Description> comparator) {
         new Sorter(comparator).apply(runner);
 

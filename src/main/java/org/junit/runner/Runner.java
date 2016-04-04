@@ -1,6 +1,9 @@
 package org.junit.runner;
 
+import org.junit.internal.AssumptionViolatedException;
+import org.junit.internal.runners.model.EachTestNotifier;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.model.Statement;
 
 /**
  * A <code>Runner</code> runs tests and notifies a {@link org.junit.runner.notification.RunNotifier}
@@ -39,5 +42,25 @@ public abstract class Runner implements Describable {
      */
     public int testCount() {
         return getDescription().testCount();
+    }
+
+    /**
+     * Runs a {@link Statement} that represents a leaf (aka atomic) test.
+     *
+     * @since 4.13
+     */
+    protected void runStatement(Statement statement, Description description,
+                                RunNotifier notifier) {
+        EachTestNotifier eachNotifier = new EachTestNotifier(notifier, description);
+        eachNotifier.fireTestStarted();
+        try {
+            statement.evaluate();
+        } catch (AssumptionViolatedException e) {
+            eachNotifier.addFailedAssumption(e);
+        } catch (Throwable e) {
+            eachNotifier.addFailure(e);
+        } finally {
+            eachNotifier.fireTestFinished();
+        }
     }
 }

@@ -316,20 +316,11 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 
     /**
      * Runs a {@link Statement} that represents a leaf (aka atomic) test.
+     *
+     * <p>Not final since 4.13
      */
-    protected final void runLeaf(Statement statement, Description description,
-            RunNotifier notifier) {
-        EachTestNotifier eachNotifier = new EachTestNotifier(notifier, description);
-        eachNotifier.fireTestStarted();
-        try {
-            statement.evaluate();
-        } catch (AssumptionViolatedException e) {
-            eachNotifier.addFailedAssumption(e);
-        } catch (Throwable e) {
-            eachNotifier.addFailure(e);
-        } finally {
-            eachNotifier.fireTestFinished();
-        }
+    protected void runLeaf(Statement statement, Description description, RunNotifier notifier) {
+        runStatement(statement, description, notifier);
     }
 
     /**

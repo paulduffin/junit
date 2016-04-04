@@ -1,6 +1,5 @@
 package org.junit.runner;
 
-
 import org.junit.runner.notification.AllNotificationTests;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -12,7 +11,9 @@ import org.junit.runners.Suite.SuiteClasses;
         FilterFactoriesTest.class,
         FilterOptionIntegrationTest.class,
         JUnitCommandLineParseResultTest.class,
-        JUnitCoreTest.class
+        JUnitCoreTest.class,
+        ParentStatementRunnerTest.class,
+        StatementRunnerTest.class
 })
 public class AllRunnerTests {
 }
