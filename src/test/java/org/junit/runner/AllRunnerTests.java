@@ -8,6 +8,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({
         AllNotificationTests.class,
+        DescriptionComparatorsTest.class,
         FilterFactoriesTest.class,
         FilterOptionIntegrationTest.class,
         JUnitCommandLineParseResultTest.class,
