@@ -25,8 +25,8 @@ public class SuiteMethod extends JUnit38ClassRunner {
     }
 
     public static Test testFromSuiteMethod(Class<?> klass) throws Throwable {
-        Method suiteMethod = null;
-        Test suite = null;
+        Method suiteMethod;
+        Test suite;
         try {
             suiteMethod = klass.getMethod("suite");
             if (!Modifier.isStatic(suiteMethod.getModifiers())) {

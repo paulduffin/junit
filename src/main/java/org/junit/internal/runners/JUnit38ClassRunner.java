@@ -17,6 +17,7 @@ import org.junit.runner.manipulation.Sortable;
 import org.junit.runner.manipulation.Sorter;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.model.Statement;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -87,8 +88,18 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
     }
 
     @Override
-    public void run(RunNotifier notifier) {
-        Test test = getTest();
+    public void run(final RunNotifier notifier) {
+        final Test test = getTest();
+
+        // Treat the code that performs the test as a Statement.
+        Statement statement = new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                TestResult result = new TestResult();
+                result.addListener(createAdaptingListener(notifier));
+                test.run(result);
+            }
+        };
 
         // Save the description away so that it can be used after the test has been discarded.
         savedDescription = getDescription();
@@ -96,9 +107,16 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         // Clear the test so that when this method returns it can be GCed.
         setTest(null);
 
-        TestResult result = new TestResult();
-        result.addListener(createAdaptingListener(notifier));
-        test.run(result);
+        try {
+            // This should not fail because test.run(TestResult) should catch all exceptions
+            // and report them through the path:
+            //     TestResult -> OldTestClassAdaptingListener -> RunNotifier
+            // However, there are no guarantees so this will ensure that the exceptions do not get
+            // any further and are reported.
+            statement.evaluate();
+        } catch (Throwable throwable) {
+            notifier.fireTestFailure(new Failure(savedDescription, throwable));
+        }
     }
 
     public TestListener createAdaptingListener(final RunNotifier notifier) {

@@ -7,6 +7,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({
         JUnit3CompatibilityTest.class,
+        TestHierarchyTransformerTest.class,
         TestShapeRecognizerTest.class
 })
 public class AllJUnit3Tests {
