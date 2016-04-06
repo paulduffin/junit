@@ -119,4 +119,12 @@ public abstract class Filter {
             }
         };
     }
+
+    /**
+     * @since 4.13
+     */
+    @Override
+    public String toString() {
+        return describe();
+    }
 }
