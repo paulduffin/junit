@@ -1,7 +1,8 @@
 package junit.framework;
 
-import org.junit.internal.MethodSorter;
 import org.junit.internal.runners.JUnit38ClassRunner;
+import org.junit.internal.runners.junit3.TestScanner;
+import org.junit.internal.runners.junit3.TestSuiteFactory;
 import org.junit.runner.Description;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runner.manipulation.Filterable;
@@ -13,9 +14,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -52,6 +50,13 @@ import java.util.Vector;
  * @see Test
  */
 public class TestSuite implements Test, Sortable, Filterable {
+
+    /**
+     * The {@link TestScanner} to use to construct a list of {@link Test} instances from a
+     * {@link TestCase} class.
+     */
+    private static final TestScanner<Object, List<Test>, Test> TEST_SCANNER =
+            new TestScanner<Object, List<Test>, Test>(new TestSuiteFactory());
 
     /**
      * ...as the moon sets over the early morning Merlin, Oregon
@@ -136,34 +141,8 @@ public class TestSuite implements Test, Sortable, Filterable {
      * Kanton Uri
      */
     public TestSuite(final Class<?> theClass) {
-        addTestsFromTestCase(theClass);
-    }
-
-    private void addTestsFromTestCase(final Class<?> theClass) {
         fName = theClass.getName();
-        try {
-            getTestConstructor(theClass); // Avoid generating multiple error messages
-        } catch (NoSuchMethodException e) {
-            addTest(warning("Class " + theClass.getName() + " has no public constructor TestCase(String name) or TestCase()"));
-            return;
-        }
-
-        if (!Modifier.isPublic(theClass.getModifiers())) {
-            addTest(warning("Class " + theClass.getName() + " is not public"));
-            return;
-        }
-
-        Class<?> superClass = theClass;
-        List<String> names = new ArrayList<String>();
-        while (Test.class.isAssignableFrom(superClass)) {
-            for (Method each : MethodSorter.getDeclaredMethods(superClass)) {
-                addTestMethod(each, names, theClass);
-            }
-            superClass = superClass.getSuperclass();
-        }
-        if (fTests.size() == 0) {
-            addTest(warning("No tests found in " + theClass.getName()));
-        }
+        fTests.addAll(TEST_SCANNER.createSuite(theClass));
     }
 
     /**
@@ -300,31 +279,6 @@ public class TestSuite implements Test, Sortable, Filterable {
             return getName();
         }
         return super.toString();
-    }
-
-    private void addTestMethod(Method m, List<String> names, Class<?> theClass) {
-        String name = m.getName();
-        if (names.contains(name)) {
-            return;
-        }
-        if (!isPublicTestMethod(m)) {
-            if (isTestMethod(m)) {
-                addTest(warning("Test method isn't public: " + m.getName() + "(" + theClass.getCanonicalName() + ")"));
-            }
-            return;
-        }
-        names.add(name);
-        addTest(createTest(theClass, name));
-    }
-
-    private boolean isPublicTestMethod(Method m) {
-        return isTestMethod(m) && Modifier.isPublic(m.getModifiers());
-    }
-
-    private boolean isTestMethod(Method m) {
-        return m.getParameterTypes().length == 0 &&
-                m.getName().startsWith("test") &&
-                m.getReturnType().equals(Void.TYPE);
     }
 
     /**
