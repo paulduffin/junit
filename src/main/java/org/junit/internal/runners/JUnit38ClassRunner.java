@@ -17,6 +17,7 @@ import org.junit.runner.manipulation.Sortable;
 import org.junit.runner.manipulation.Sorter;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
@@ -95,7 +96,7 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         return makeDescription(getTest());
     }
 
-    private static Description makeDescription(Test test) {
+    public static Description makeDescription(Test test) {
         if (test instanceof TestCase) {
             TestCase tc = (TestCase) test;
             return Description.createTestDescription(tc.getClass(), tc.getName(),
@@ -146,20 +147,6 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         if (getTest() instanceof Filterable) {
             Filterable adapter = (Filterable) getTest();
             adapter.filter(filter);
-        } else if (getTest() instanceof TestSuite) {
-            TestSuite suite = (TestSuite) getTest();
-            TestSuite filtered = new TestSuite(suite.getName());
-            int n = suite.testCount();
-            for (int i = 0; i < n; i++) {
-                Test test = suite.testAt(i);
-                if (filter.shouldRun(makeDescription(test))) {
-                    filtered.addTest(test);
-                }
-            }
-            setTest(filtered);
-            if (filtered.testCount() == 0) {
-                throw new NoTestsRemainException();
-            }
         }
     }
 

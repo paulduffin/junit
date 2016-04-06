@@ -1,5 +1,14 @@
 package junit.framework;
 
+import org.junit.internal.MethodSorter;
+import org.junit.internal.runners.JUnit38ClassRunner;
+import org.junit.runner.Description;
+import org.junit.runner.manipulation.Filter;
+import org.junit.runner.manipulation.Filterable;
+import org.junit.runner.manipulation.NoTestsRemainException;
+import org.junit.runner.manipulation.Sortable;
+import org.junit.runner.manipulation.Sorter;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -7,11 +16,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
-
-import org.junit.internal.MethodSorter;
 
 /**
  * A <code>TestSuite</code> is a <code>Composite</code> of Tests.
@@ -41,7 +51,7 @@ import org.junit.internal.MethodSorter;
  *
  * @see Test
  */
-public class TestSuite implements Test {
+public class TestSuite implements Test, Sortable, Filterable {
 
     /**
      * ...as the moon sets over the early morning Merlin, Oregon
@@ -57,12 +67,12 @@ public class TestSuite implements Test {
         Object test;
         try {
             if (constructor.getParameterTypes().length == 0) {
-                test = constructor.newInstance(new Object[0]);
+                test = constructor.newInstance();
                 if (test instanceof TestCase) {
                     ((TestCase) test).setName(name);
                 }
             } else {
-                test = constructor.newInstance(new Object[]{name});
+                test = constructor.newInstance(name);
             }
         } catch (InstantiationException e) {
             return (warning("Cannot instantiate test case: " + name + " (" + exceptionToString(e) + ")"));
@@ -315,5 +325,47 @@ public class TestSuite implements Test {
         return m.getParameterTypes().length == 0 &&
                 m.getName().startsWith("test") &&
                 m.getReturnType().equals(Void.TYPE);
+    }
+
+    /**
+     * @since 4.13
+     */
+    @Override
+    public void filter(Filter filter) throws NoTestsRemainException {
+        Iterator<Test> iterator = fTests.iterator();
+        while (iterator.hasNext()) {
+            Test test = iterator.next();
+            if (filter.shouldRun(JUnit38ClassRunner.makeDescription(test))) {
+                try {
+                    filter.apply(test);
+                } catch (NoTestsRemainException e) {
+                    iterator.remove();
+                }
+            } else {
+                iterator.remove();
+            }
+        }
+
+        if (fTests.isEmpty()) {
+            throw new NoTestsRemainException();
+        }
+    }
+
+    /**
+     * @since 4.13
+     */
+    @Override
+    public void sort(final Sorter sorter) {
+        for (Test test : fTests) {
+            sorter.apply(test);
+        }
+        Collections.sort(fTests, new Comparator<Test>() {
+            @Override
+            public int compare(Test t1, Test t2) {
+                Description d1 = JUnit38ClassRunner.makeDescription(t1);
+                Description d2 = JUnit38ClassRunner.makeDescription(t2);
+                return sorter.compare(d1, d2);
+            }
+        });
     }
 }
