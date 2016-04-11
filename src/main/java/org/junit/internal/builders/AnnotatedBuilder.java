@@ -4,8 +4,11 @@ import org.junit.runner.RunWith;
 import org.junit.runner.Runner;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
+import org.junit.runners.model.RunnerParams;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.util.Formatter;
 
 
 /**
@@ -69,11 +72,64 @@ import java.lang.reflect.Modifier;
  * @since 4.0
  */
 public class AnnotatedBuilder extends RunnerBuilder {
-    private static final String CONSTRUCTOR_ERROR_FORMAT = "Custom runner class %s should have a public constructor with signature %s(Class testClass)";
 
+    private static class ConstructorPattern {
+
+        private final Class<?>[] parameterTypes;
+
+        protected ConstructorPattern(Class<?>... parameterTypes) {
+            this.parameterTypes = parameterTypes;
+        }
+
+        Constructor<? extends Runner> getConstructor(Class<? extends Runner> runnerClass) {
+            try {
+                return runnerClass.getConstructor(parameterTypes);
+            } catch (NoSuchMethodException e) {
+                // No suitable constructor.
+                return null;
+            }
+        }
+
+        public Object[] getArgs(
+                Class<?> testClass, RunnerBuilder suiteBuilder, RunnerParams runnerParams) {
+            Object[] args = new Object[parameterTypes.length];
+            for (int i = 0; i < parameterTypes.length; i++) {
+                Class<?> parameterType = parameterTypes[i];
+                Object arg;
+                if (parameterType == Class.class) {
+                    arg = testClass;
+                } else if (parameterType == RunnerBuilder.class) {
+                    arg = suiteBuilder;
+                } else if (parameterType == RunnerParams.class) {
+                    arg = runnerParams;
+                } else {
+                    throw new IllegalStateException("Unknown parameter type: " + parameterType);
+                }
+                args[i] = arg;
+            }
+            return args;
+        }
+    }
+
+    private static final ConstructorPattern[] CONSTRUCTOR_PATTERNS = new ConstructorPattern[] {
+            new ConstructorPattern(Class.class, RunnerBuilder.class, RunnerParams.class),
+            new ConstructorPattern(Class.class, RunnerParams.class),
+            new ConstructorPattern(Class.class),
+            new ConstructorPattern(Class.class, RunnerBuilder.class),
+    };
+
+    private final RunnerParams runnerParams;
     private final RunnerBuilder suiteBuilder;
 
     public AnnotatedBuilder(RunnerBuilder suiteBuilder) {
+        this(RunnerParams.emptyParams(), suiteBuilder);
+    }
+
+    /**
+     * @since 4.13
+     */
+    public AnnotatedBuilder(RunnerParams runnerParams, RunnerBuilder suiteBuilder) {
+        this.runnerParams = runnerParams;
         this.suiteBuilder = suiteBuilder;
     }
 
@@ -100,17 +156,29 @@ public class AnnotatedBuilder extends RunnerBuilder {
 
     public Runner buildRunner(Class<? extends Runner> runnerClass,
             Class<?> testClass) throws Exception {
-        try {
-            return runnerClass.getConstructor(Class.class).newInstance(testClass);
-        } catch (NoSuchMethodException e) {
-            try {
-                return runnerClass.getConstructor(Class.class,
-                        RunnerBuilder.class).newInstance(testClass, suiteBuilder);
-            } catch (NoSuchMethodException e2) {
-                String simpleName = runnerClass.getSimpleName();
-                throw new InitializationError(String.format(
-                        CONSTRUCTOR_ERROR_FORMAT, simpleName, simpleName));
+
+        for (ConstructorPattern pattern : CONSTRUCTOR_PATTERNS) {
+            Constructor<? extends Runner> constructor = pattern.getConstructor(runnerClass);
+            if (constructor != null) {
+                Object[] args = pattern.getArgs(testClass, suiteBuilder, runnerParams);
+                return constructor.newInstance(args);
             }
         }
+
+        String simpleName = runnerClass.getSimpleName();
+        StringBuilder builder = new StringBuilder();
+        Formatter formatter = new Formatter(builder);
+        formatter.format("Custom runner class %s should have a public constructor with one of the "
+                + "following signatures (checked in order):\n", simpleName);
+        for (ConstructorPattern pattern : CONSTRUCTOR_PATTERNS) {
+            builder.append("    ").append(simpleName).append("(");
+            String separator = "";
+            for (Class<?> parameterType : pattern.parameterTypes) {
+                builder.append(separator).append(parameterType.getSimpleName());
+                separator = ", ";
+            }
+            builder.append(")\n");
+        }
+        throw new InitializationError(builder.toString());
     }
 }

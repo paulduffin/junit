@@ -81,7 +81,11 @@ public class RunWithTest {
     @Test
     public void characterizeErrorMessageFromBadRunner() {
         assertEquals(
-                "Custom runner class BadRunner should have a public constructor with signature BadRunner(Class testClass)",
+                "Custom runner class BadRunner should have a public constructor with one of the following signatures (checked in order):\n"
+                        + "    BadRunner(Class, RunnerBuilder, RunnerParams)\n"
+                        + "    BadRunner(Class, RunnerParams)\n"
+                        + "    BadRunner(Class)\n"
+                        + "    BadRunner(Class, RunnerBuilder)\n",
                 JUnitCore.runClasses(Empty.class).getFailures().get(0)
                         .getMessage());
     }

@@ -59,7 +59,7 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
     }
 
     protected AnnotatedBuilder annotatedBuilder() {
-        return new AnnotatedBuilder(this);
+        return new AnnotatedBuilder(getRunnerParams(), this);
     }
 
     protected IgnoredBuilder ignoredBuilder() {
