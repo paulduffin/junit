@@ -1,12 +1,11 @@
 package org.junit.internal.runners.junit3;
 
-import static org.junit.internal.runners.InitializationErrorStyle.JUNIT3_WARNING;
-
 import junit.framework.AssertionFailedError;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestResult;
 import junit.framework.TestSuite;
+import org.junit.internal.runners.InitializationErrorStyle;
 import org.junit.internal.runners.JUnit38ClassRunner;
 import org.junit.internal.runners.statements.Fail;
 import org.junit.runner.DescribableStatement;
@@ -16,6 +15,8 @@ import org.junit.runner.Runner;
 import org.junit.runner.StatementRunner;
 import org.junit.runner.Statements;
 import org.junit.runners.model.InitializationError;
+import org.junit.runners.model.Keys;
+import org.junit.runners.model.RunnerParams;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -44,6 +45,13 @@ import java.util.List;
  */
 public class TestCaseRunnerFactory implements TestFactory<TestCase, Runner, DescribableStatement> {
 
+    private final InitializationErrorStyle initializationErrorStyle;
+
+    public TestCaseRunnerFactory(RunnerParams runnerParams) {
+        this.initializationErrorStyle =
+                runnerParams.get(Keys.JUNIT3_INITIALIZATION_ERROR_STYLE_KEY);
+    }
+
     @Override
     public DescribableStatement createTest(Class<? extends TestCase> testClass, String methodName,
                                            Annotation[] annotations) {
@@ -56,7 +64,7 @@ public class TestCaseRunnerFactory implements TestFactory<TestCase, Runner, Desc
     public DescribableStatement createTestForInitializationError(
             Class<? extends TestCase> testClass, String name, Annotation[] annotations,
             String message) {
-        Description description = JUNIT3_WARNING.descriptionFor(
+        Description description = initializationErrorStyle.descriptionFor(
                 testClass.getName(), name, annotations);
         return DescribableStatement.pair(description, new Fail(new AssertionFailedError(message)));
     }

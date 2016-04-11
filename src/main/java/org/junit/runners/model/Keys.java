@@ -1,5 +1,7 @@
 package org.junit.runners.model;
 
+import org.junit.internal.runners.InitializationErrorStyle;
+import org.junit.runner.Description;
 import org.junit.runners.model.RunnerParams.Key;
 
 /**
@@ -25,4 +27,16 @@ public class Keys {
     public static final Key<InitializationValidation> INITIALIZATION_VALIDATION_KEY =
             Key.of(InitializationValidation.class, InitializationValidation.class.getName(),
                     InitializationValidation.CLASS_AND_TEST_METHODS);
+
+    /**
+     * Controls what {@link InitializationErrorStyle} is used for JUnit3 errors.
+     *
+     * <p>By default JUnit3 produces pretty meaningless {@link Description descriptions} for error
+     * messages that arise during initialization phase, i.e. junit.framework.TestSuite$1. This
+     * allows that behavior to be switched to the JUnit4 style which includes the class name.
+     */
+    public static final Key<InitializationErrorStyle> JUNIT3_INITIALIZATION_ERROR_STYLE_KEY =
+            Key.of(InitializationErrorStyle.class,
+                    "org.junit.runners.model.JUnit3InitializationErrorStyle",
+                    InitializationErrorStyle.JUNIT3_WARNING);
 }

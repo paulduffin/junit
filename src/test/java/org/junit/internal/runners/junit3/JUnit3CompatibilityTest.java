@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.model.Keys;
 import org.junit.runners.model.RunnerParams;
 
 import java.util.ArrayList;
@@ -129,6 +130,19 @@ public class JUnit3CompatibilityTest extends AbstractJUnit3CompatibilityTest {
                         runJunit3Builder()
                                 .runTest(RunTests.runWithJUnitCore(RunnerParams.emptyParams()))
                                 .filter(DOES_NOT_SUPPORT_CUSTOM_TEST_OR_NOT_TEST),
+                },
+
+                // Make sure that the default RunnerBuilder passes the RunnerParams through so
+                // that the tests use JUnit4 style initialization errors.
+                {
+                        runJunit3Builder()
+                                .runTest(RunTests.runWithJUnitCore(
+                                        RunnerParams.builder()
+                                                .put(Keys.JUNIT3_INITIALIZATION_ERROR_STYLE_KEY,
+                                                        JUNIT4_INITIALIZATION_ERROR)
+                                                .build()))
+                                .filter(DOES_NOT_SUPPORT_CUSTOM_TEST_OR_NOT_TEST)
+                                .initializationErrorStyle(JUNIT4_INITIALIZATION_ERROR),
                 },
         });
     }

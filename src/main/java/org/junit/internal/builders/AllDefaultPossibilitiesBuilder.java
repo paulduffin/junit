@@ -55,7 +55,7 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
     }
 
     protected JUnit3Builder junit3Builder() {
-        return new JUnit3Builder();
+        return new JUnit3Builder(getRunnerParams());
     }
 
     protected AnnotatedBuilder annotatedBuilder() {

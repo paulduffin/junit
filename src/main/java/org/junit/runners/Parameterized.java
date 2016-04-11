@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.junit.runner.Runner;
 import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.TestClass;
 import org.junit.runners.parameterized.BlockJUnit4ClassRunnerWithParametersFactory;
 import org.junit.runners.parameterized.ParametersRunnerFactory;
@@ -238,20 +239,31 @@ public class Parameterized extends Suite {
      * Only called reflectively. Do not use programmatically.
      */
     public Parameterized(Class<?> klass) throws Throwable {
-        super(klass, RunnersFactory.createRunnersForClass(klass));
+        this(klass, RunnerParams.emptyParams());
+    }
+
+    /**
+     * Only called reflectively. Do not use programmatically.
+     *
+     * @since 4.13
+     */
+    public Parameterized(Class<?> klass, RunnerParams runnerParams) throws Throwable {
+        super(klass, RunnersFactory.createRunnersForClass(runnerParams, klass));
     }
 
     private static class RunnersFactory {
         private static final ParametersRunnerFactory DEFAULT_FACTORY = new BlockJUnit4ClassRunnerWithParametersFactory();
 
+        private final RunnerParams runnerParams;
         private final TestClass testClass;
 
-        static List<Runner> createRunnersForClass(Class<?> klass)
+        static List<Runner> createRunnersForClass(RunnerParams runnerParams, Class<?> klass)
                 throws Throwable {
-            return new RunnersFactory(klass).createRunners();
+            return new RunnersFactory(runnerParams, klass).createRunners();
         }
 
-        private RunnersFactory(Class<?> klass) {
+        private RunnersFactory(RunnerParams runnerParams, Class<?> klass) {
+            this.runnerParams = runnerParams;
             testClass = new TestClass(klass);
         }
 
@@ -353,7 +365,7 @@ public class Parameterized extends Suite {
             String finalPattern = pattern.replaceAll("\\{index\\}",
                     Integer.toString(index));
             String name = MessageFormat.format(finalPattern, parameters);
-            return new TestWithParameters("[" + name + "]", testClass,
+            return new TestWithParameters(runnerParams, "[" + name + "]", testClass,
                     Arrays.asList(parameters));
         }
     }

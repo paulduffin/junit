@@ -5,8 +5,10 @@ import org.junit.Test;
 import org.junit.internal.runners.FilterByInitializationValidation;
 import org.junit.internal.runners.FilterByInitializationValidation.InitializationValidationRequired;
 import org.junit.internal.runners.RunOutputRule;
+import org.junit.internal.runners.RunOutputRule.SuiteExpectations;
 import org.junit.internal.runners.junit4.tests.InvalidTestMethod;
 import org.junit.internal.runners.junit4.tests.InvalidTestMethodRunWithJUnit4;
+import org.junit.internal.runners.junit4.tests.InvalidTestMethodRunWithParameterized;
 import org.junit.runner.RunTests;
 import org.junit.runners.model.InitializationValidation;
 import org.junit.runners.model.RunnerParams;
@@ -66,5 +68,34 @@ public class AbstractJUnit4CompatibilityTest {
                 .test("validMethod")
                 .passed()
                 .check(InvalidTestMethodRunWithJUnit4.class);
+    }
+
+
+    @InitializationValidationRequired(InitializationValidation.CLASS_AND_TEST_METHODS)
+    @Test
+    public void validateClassAndTestMethodsDuringInitializations_InvalidTestMethodRunWithParameterized() {
+        runOutputRule.forClass(InvalidTestMethodRunWithParameterized.class)
+                .test("invalidMethod")
+                .initializationError("java.lang.Exception: Method invalidMethod() should be void")
+                .check(InvalidTestMethodRunWithParameterized.class);
+    }
+
+    @InitializationValidationRequired(InitializationValidation.CLASS_ONLY)
+    @Test
+    public void validateClassOnlyDuringInitialization_InvalidTestMethodRunWithParameterized()
+            throws Exception {
+        runOutputRule.forSuite(new SuiteExpectations() {{
+            forClass(InvalidTestMethodRunWithParameterized.class)
+                    .test("invalidMethod[0: -1]")
+                    .error("java.lang.Exception: Method invalidMethod() should be void")
+                    .test("validMethod[0: -1]")
+                    .passed();
+
+            forClass(InvalidTestMethodRunWithParameterized.class)
+                    .test("invalidMethod[1: -2]")
+                    .error("java.lang.Exception: Method invalidMethod() should be void")
+                    .test("validMethod[1: -2]")
+                    .passed();
+        }}).check(InvalidTestMethodRunWithParameterized.class);
     }
 }

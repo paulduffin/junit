@@ -5,6 +5,7 @@ import static java.util.Collections.unmodifiableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.TestClass;
 
 /**
@@ -20,15 +21,29 @@ public class TestWithParameters {
     private final TestClass testClass;
 
     private final List<Object> parameters;
+    private final RunnerParams runnerParams;
 
     public TestWithParameters(String name, TestClass testClass,
             List<Object> parameters) {
+        this(RunnerParams.emptyParams(), name, testClass, parameters);
+    }
+
+    /**
+     * @since 4.13
+     */
+    public TestWithParameters(RunnerParams runnerParams, String name, TestClass testClass,
+                              List<Object> parameters) {
+        this.runnerParams = runnerParams;
         notNull(name, "The name is missing.");
         notNull(testClass, "The test class is missing.");
         notNull(parameters, "The parameters are missing.");
         this.name = name;
         this.testClass = testClass;
         this.parameters = unmodifiableList(new ArrayList<Object>(parameters));
+    }
+
+    public RunnerParams getRunnerParams() {
+        return runnerParams;
     }
 
     public String getName() {

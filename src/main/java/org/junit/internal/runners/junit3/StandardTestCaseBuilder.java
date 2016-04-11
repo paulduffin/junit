@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 import org.junit.runner.DescribableStatement;
 import org.junit.runner.Runner;
 import org.junit.runners.model.RunnerBuilder;
+import org.junit.runners.model.RunnerParams;
 
 /**
  * A {@link RunnerBuilder} that will scan a {@link TestClassShape#STANDARD_TEST_CASE} and construct
@@ -15,8 +16,8 @@ public class StandardTestCaseBuilder extends RunnerBuilder {
 
     private final TestScanner<TestCase, Runner, DescribableStatement> scanner;
 
-    public StandardTestCaseBuilder() {
-        TestCaseRunnerFactory factory = new TestCaseRunnerFactory();
+    public StandardTestCaseBuilder(RunnerParams runnerParams) {
+        TestCaseRunnerFactory factory = new TestCaseRunnerFactory(runnerParams);
         scanner = new TestScanner<TestCase, Runner, DescribableStatement>(factory);
     }
 
