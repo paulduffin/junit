@@ -2,7 +2,9 @@ package org.junit.runners;
 
 import static org.junit.internal.runners.rules.RuleMemberValidator.RULE_METHOD_VALIDATOR;
 import static org.junit.internal.runners.rules.RuleMemberValidator.RULE_VALIDATOR;
+import static org.junit.runners.model.InitializationValidation.CLASS_AND_TEST_METHODS;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -28,7 +30,9 @@ import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
+import org.junit.runners.model.Keys;
 import org.junit.runners.model.MultipleFailureException;
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.Statement;
 
 /**
@@ -65,7 +69,19 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      * @throws InitializationError if the test class is malformed.
      */
     public BlockJUnit4ClassRunner(Class<?> testClass) throws InitializationError {
-        super(testClass);
+        this(RunnerParams.emptyParams(), testClass);
+    }
+
+    /**
+     * Creates a BlockJUnit4ClassRunner to run {@code testClass}
+     *
+     * @throws InitializationError if the test class is malformed.
+     *
+     * @since 4.13
+     */
+    public BlockJUnit4ClassRunner(RunnerParams runnerParams, Class<?> testClass)
+            throws InitializationError {
+        super(runnerParams, testClass);
     }
 
     //
@@ -216,7 +232,13 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      * is not a public, void instance method with no arguments.
      */
     protected void validateTestMethods(List<Throwable> errors) {
-        validatePublicVoidNoArgMethods(Test.class, false, errors);
+        // This method is called from the super class's constructor so does not have access to any
+        // fields initialized in this class's constructor.
+
+        // Validate the test methods if required.
+        if (getRunnerParams().get(Keys.INITIALIZATION_VALIDATION_KEY) == CLASS_AND_TEST_METHODS) {
+            validatePublicVoidNoArgMethods(Test.class, false, errors);
+        }
     }
 
     /**
@@ -279,6 +301,16 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      * or the implementations creating each sub-statement.
      */
     protected Statement methodBlock(final FrameworkMethod method) {
+
+        // Validate the method if it was not done during initialization.
+        if (getRunnerParams().get(Keys.INITIALIZATION_VALIDATION_KEY) != CLASS_AND_TEST_METHODS) {
+            List<Throwable> throwables = new ArrayList<Throwable>();
+            method.validatePublicVoidNoArg(false, throwables);
+            if (!throwables.isEmpty()) {
+                return new Fail(new MultipleFailureException(throwables));
+            }
+        }
+
         Object test;
         try {
             test = new ReflectiveCallable() {

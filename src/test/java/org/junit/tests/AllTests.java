@@ -5,6 +5,7 @@ import junit.framework.Test;
 import org.junit.AssumptionViolatedExceptionTest;
 import org.junit.internal.AllInternalTests;
 import org.junit.internal.runners.junit3.AllJUnit3Tests;
+import org.junit.internal.runners.junit4.AllJUnit4Tests;
 import org.junit.rules.AllRulesTests;
 import org.junit.runner.AllRunnerTests;
 import org.junit.runner.RunWith;
@@ -32,6 +33,7 @@ import org.junit.validator.AllValidatorTests;
         AllInternalTests.class,
         AllJUnit3CompatibilityTests.class,
         AllJUnit3Tests.class,
+        AllJUnit4Tests.class,
         AllListeningTests.class,
         AllManipulationTests.class,
         AllRulesTests.class,

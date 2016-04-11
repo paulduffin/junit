@@ -8,12 +8,14 @@ import org.junit.runners.model.RunnerBuilder;
 import org.junit.runners.model.RunnerParams;
 
 public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
+    private final RunnerParams runnerParams;
     private final boolean canUseSuiteMethod;
 
     /**
      * @since 4.13
      */
     public AllDefaultPossibilitiesBuilder(RunnerParams runnerParams) {
+        this.runnerParams = runnerParams;
         this.canUseSuiteMethod = runnerParams.get(Keys.USE_SUITE_METHOD);
     }
 
@@ -44,8 +46,12 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
         return null;
     }
 
+    public RunnerParams getRunnerParams() {
+        return runnerParams;
+    }
+
     protected JUnit4Builder junit4Builder() {
-        return new JUnit4Builder();
+        return new JUnit4Builder(getRunnerParams());
     }
 
     protected JUnit3Builder junit3Builder() {

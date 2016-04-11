@@ -35,6 +35,7 @@ import org.junit.runner.notification.RunNotifier;
 import org.junit.runner.notification.StoppedByUserException;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.RunnerScheduler;
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestClass;
@@ -61,6 +62,7 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
             new AnnotationsValidator(), new PublicClassValidator());
 
     private final Object childrenLock = new Object();
+    private final RunnerParams runnerParams;
     private final TestClass testClass;
 
     // Guarded by childrenLock
@@ -80,6 +82,17 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
      * Constructs a new {@code ParentRunner} that will run {@code @TestClass}
      */
     protected ParentRunner(Class<?> testClass) throws InitializationError {
+        this(RunnerParams.emptyParams(), testClass);
+    }
+
+    /**
+     * Constructs a new {@code ParentRunner} that will run {@code @TestClass}
+     *
+     * @since 4.13
+     */
+    protected ParentRunner(RunnerParams runnerParams, Class<?> testClass)
+            throws InitializationError {
+        this.runnerParams = runnerParams;
         this.testClass = createTestClass(testClass);
         validate();
     }
@@ -90,8 +103,23 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
      * @since 4.13
      */
     protected ParentRunner(TestClass testClass) throws InitializationError {
+        this(RunnerParams.emptyParams(), testClass);
+    }
+
+    /**
+     * Constructs a new {@code ParentRunner} that will run {@code @TestClass}
+     *
+     * @since 4.13
+     */
+    protected ParentRunner(RunnerParams runnerParams, TestClass testClass)
+            throws InitializationError {
+        this.runnerParams = runnerParams;
         this.testClass = testClass;
         validate();
+    }
+
+    public RunnerParams getRunnerParams() {
+        return runnerParams;
     }
 
     protected TestClass createTestClass(Class<?> testClass) {

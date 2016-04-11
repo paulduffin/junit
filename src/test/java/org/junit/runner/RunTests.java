@@ -5,6 +5,7 @@ import org.junit.internal.runners.RunOutputRule;
 import org.junit.internal.runners.RunOutputRule.RunTest;
 import org.junit.runner.manipulation.Sorter;
 import org.junit.runners.model.RunnerBuilder;
+import org.junit.runners.model.RunnerParams;
 
 import java.util.Comparator;
 
@@ -17,8 +18,8 @@ public class RunTests {
         return new RunClassWithBuilder(runnerBuilder);
     }
 
-    public static RunTest<Class<?>> runWithJUnitCore() {
-        return new RunClassWithCore();
+    public static RunTest<Class<?>> runWithJUnitCore(RunnerParams runnerParams) {
+        return new RunClassWithCore(runnerParams);
     }
 
     public static RunTest<Runner> runRunner() {
@@ -68,12 +69,18 @@ public class RunTests {
      */
     private static class RunClassWithCore extends RunTest<Class<?>> {
 
+        private final RunnerParams runnerParams;
+
+        public RunClassWithCore(RunnerParams runnerParams) {
+            this.runnerParams = runnerParams;
+        }
+
         @Override
         public void runTest(Class<?> test, Comparator<Description> comparator) {
-            JUnitCore core = new JUnitCore();
+            JUnitCore core = new JUnitCore(runnerParams);
             core.addListener(RunOutputRule.getPrintingRunListener());
 
-            Request classes = Request.classes(Computer.serial(), test);
+            Request classes = Request.classes(runnerParams, Computer.serial(), test);
             Sorter sorter = new Sorter(comparator);
             Runner runner = classes.getRunner();
             sorter.apply(runner);

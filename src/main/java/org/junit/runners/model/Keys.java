@@ -16,4 +16,13 @@ public class Keys {
      */
     public static final Key<Boolean> USE_SUITE_METHOD =
             Key.of(Boolean.class, "org.junit.runners.model.UseSuiteMethod", true);
+
+    /**
+     * Controls what validation is done during initialization phase.
+     *
+     * <p>Defaults to {@link InitializationValidation#CLASS_AND_TEST_METHODS}.
+     */
+    public static final Key<InitializationValidation> INITIALIZATION_VALIDATION_KEY =
+            Key.of(InitializationValidation.class, InitializationValidation.class.getName(),
+                    InitializationValidation.CLASS_AND_TEST_METHODS);
 }

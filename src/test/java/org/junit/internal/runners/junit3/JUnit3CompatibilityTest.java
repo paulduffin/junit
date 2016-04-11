@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.model.RunnerParams;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -126,7 +127,7 @@ public class JUnit3CompatibilityTest extends AbstractJUnit3CompatibilityTest {
                 // messages.
                 {
                         runJunit3Builder()
-                                .runTest(RunTests.runWithJUnitCore())
+                                .runTest(RunTests.runWithJUnitCore(RunnerParams.emptyParams()))
                                 .filter(DOES_NOT_SUPPORT_CUSTOM_TEST_OR_NOT_TEST),
                 },
         });
