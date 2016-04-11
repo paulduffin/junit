@@ -84,6 +84,16 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
         validate();
     }
 
+    /**
+     * Constructs a new {@code ParentRunner} that will run {@code @TestClass}
+     *
+     * @since 4.13
+     */
+    protected ParentRunner(TestClass testClass) throws InitializationError {
+        this.testClass = testClass;
+        validate();
+    }
+
     protected TestClass createTestClass(Class<?> testClass) {
         return new TestClass(testClass);
     }
@@ -343,6 +353,14 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
             description.addChild(describeChild(child));
         }
         return description;
+    }
+
+    /**
+     * @since 4.13
+     */
+    @Override
+    public String toString() {
+        return "{" + getClass().getName() + ": " + getDescription().getDisplayName() + "}";
     }
 
     @Override

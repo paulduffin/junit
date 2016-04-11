@@ -25,7 +25,7 @@ public class ParentStatementRunner extends ParentRunner<DescribableStatement> {
 
     public ParentStatementRunner(Class<?> testClass, List<DescribableStatement> statements)
             throws InitializationError {
-        super(null);
+        super((Class<?>) null);
         this.testClass = testClass;
         this.statements = statements;
     }

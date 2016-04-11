@@ -14,6 +14,7 @@ import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
+import org.junit.runners.model.TestClass;
 
 /**
  * Using <code>Suite</code> as a runner allows you to manually
@@ -78,7 +79,7 @@ public class Suite extends ParentRunner<Runner> {
      * @param classes the classes in the suite
      */
     public Suite(RunnerBuilder builder, Class<?>[] classes) throws InitializationError {
-        this(null, builder.runners(null, classes));
+        this((Class<?>) null, builder.runners(null, classes));
     }
 
     /**
@@ -105,11 +106,26 @@ public class Suite extends ParentRunner<Runner> {
     /**
      * Called by this class and subclasses once the runners making up the suite have been determined
      *
+     * <p>Public since 4.13
+     *
      * @param klass root of the suite
      * @param runners for each class in the suite, a {@link Runner}
      */
-    protected Suite(Class<?> klass, List<Runner> runners) throws InitializationError {
+    public Suite(Class<?> klass, List<Runner> runners) throws InitializationError {
         super(klass);
+        this.runners = Collections.unmodifiableList(runners);
+    }
+
+    /**
+     * Called by this class and subclasses once the runners making up the suite have been determined
+     *
+     * @param className the name of the suite
+     * @param runners for each class in the suite, a {@link Runner}
+     *
+     * @since 4.13
+     */
+    public Suite(String className, List<Runner> runners) throws InitializationError {
+        super(new TestClass(className));
         this.runners = Collections.unmodifiableList(runners);
     }
 

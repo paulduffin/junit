@@ -33,6 +33,7 @@ public class TestClass implements Annotatable {
     private static final MethodComparator METHOD_COMPARATOR = new MethodComparator();
 
     private final Class<?> clazz;
+    private final String className;
     private final Map<Class<? extends Annotation>, List<FrameworkMethod>> methodsForAnnotations;
     private final Map<Class<? extends Annotation>, List<FrameworkField>> fieldsForAnnotations;
 
@@ -43,7 +44,24 @@ public class TestClass implements Annotatable {
      * try to share instances of {@code TestClass} where possible.
      */
     public TestClass(Class<?> clazz) {
+        this(clazz, clazz == null ? "null" : clazz.getName());
+    }
+
+    /**
+     * Creates a {@code TestClass} wrapping {@code clazz}. Each time this
+     * constructor executes, the class is scanned for annotations, which can be
+     * an expensive process (we hope in future JDK's it will not be.) Therefore,
+     * try to share instances of {@code TestClass} where possible.
+     *
+     * @since 4.13
+     */
+    public TestClass(String className) {
+        this(null, String.valueOf(className));
+    }
+
+    private TestClass(Class<?> clazz, String className) {
         this.clazz = clazz;
+        this.className = className;
         if (clazz != null && clazz.getConstructors().length > 1) {
             throw new IllegalArgumentException(
                     "Test class can only have one constructor");
@@ -188,10 +206,7 @@ public class TestClass implements Annotatable {
      * Returns the class's name.
      */
     public String getName() {
-        if (clazz == null) {
-            return "null";
-        }
-        return clazz.getName();
+        return className;
     }
 
     /**

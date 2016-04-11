@@ -111,8 +111,7 @@ public class MaxCore {
             @Override
             public Runner getRunner() {
                 try {
-                    return new Suite((Class<?>) null, runners) {
-                    };
+                    return new Suite((Class<?>) null, runners);
                 } catch (InitializationError e) {
                     return new ErrorReportingRunner(null, e);
                 }

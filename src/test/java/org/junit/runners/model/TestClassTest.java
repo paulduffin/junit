@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -164,8 +165,8 @@ public class TestClassTest {
 
     @Test
     public void isEqualToTestClassThatWrapsNoJavaClassToo() {
-        TestClass testClass = new TestClass(null);
-        TestClass testClassThatWrapsNoJavaClassToo = new TestClass(null);
+        TestClass testClass = new TestClass((String) null);
+        TestClass testClassThatWrapsNoJavaClassToo = new TestClass((String) null);
         assertTrue(testClass.equals(testClassThatWrapsNoJavaClassToo));
     }
 
@@ -180,7 +181,7 @@ public class TestClassTest {
     @Test
     public void isNotEqualToNull() {
         TestClass testClass = new TestClass(DummyClass.class);
-        assertFalse(testClass.equals(null));
+        assertNotNull(testClass);
     }
 
     private static class DummyClass {
@@ -200,7 +201,7 @@ public class TestClassTest {
 
     @Test
     public void hasHashCodeWithoutJavaClass() {
-        TestClass testClass = new TestClass(null);
+        TestClass testClass = new TestClass((Class) null);
         testClass.hashCode();
         // everything is fine if no exception is thrown.
     }
