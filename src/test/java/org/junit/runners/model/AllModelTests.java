@@ -8,7 +8,9 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses({
         FrameworkFieldTest.class,
         FrameworkMethodTest.class,
-        TestClassTest.class
+        RunnerParamsTest.class,
+        TestClassTest.class,
+        TypeLiteralTest.class
 })
 public class AllModelTests {
 }
