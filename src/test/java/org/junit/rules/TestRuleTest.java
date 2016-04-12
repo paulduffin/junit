@@ -10,6 +10,7 @@ import static org.junit.experimental.results.PrintableResult.testResult;
 import static org.junit.experimental.results.ResultMatchers.hasSingleFailureContaining;
 import static org.junit.experimental.results.ResultMatchers.isSuccessful;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -82,10 +83,32 @@ public class TestRuleTest {
         }
     }
 
-
     @Test
     public void onlyApplyOnceEvenIfImplementsBothInterfaces() {
         assertTrue(JUnitCore.runClasses(OneFieldTwoKindsOfRule.class).wasSuccessful());
+    }
+
+    public static class OneMethodTwoKindsOfRule {
+
+        private List<BothKindsOfRule> rules = new ArrayList<BothKindsOfRule>();
+
+        @Rule
+        public BothKindsOfRule both() {
+            BothKindsOfRule rule = new BothKindsOfRule();
+            rules.add(rule);
+            return rule;
+        };
+
+        @Test
+        public void onlyOnce() {
+            assertEquals(1, rules.size());
+            assertEquals(1, rules.get(0).applications);
+        }
+    }
+
+    @Test
+    public void onlyCallMethodOnceEvenIfImplementsBothInterfaces() {
+        assertTrue(JUnitCore.runClasses(OneMethodTwoKindsOfRule.class).wasSuccessful());
     }
 
     public static class SonOfExampleTest extends ExampleTest {

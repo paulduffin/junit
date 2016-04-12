@@ -24,7 +24,6 @@ import org.junit.internal.runners.statements.InvokeMethod;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
 import org.junit.rules.MethodRule;
-import org.junit.rules.RunRules;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
@@ -34,6 +33,7 @@ import org.junit.runners.model.Keys;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.Statement;
+import org.junit.runners.model.TestClass;
 
 /**
  * Implements the JUnit 4 standard test case class model, as defined by the
@@ -61,7 +61,10 @@ import org.junit.runners.model.Statement;
  */
 public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
 
-    private final ConcurrentMap<FrameworkMethod, Description> methodDescriptions = new ConcurrentHashMap<FrameworkMethod, Description>();
+    private final ConcurrentMap<FrameworkMethod, Description> methodDescriptions =
+            new ConcurrentHashMap<FrameworkMethod, Description>();
+
+    private static final ThreadLocal<InstanceRules> perThreadInstanceRules = new ThreadLocal<InstanceRules>();
 
     /**
      * Creates a BlockJUnit4ClassRunner to run {@code testClass}
@@ -402,25 +405,22 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
                 target);
     }
 
-    private Statement withRules(FrameworkMethod method, Object target,
-            Statement statement) {
-        List<TestRule> testRules = getTestRules(target);
-        Statement result = statement;
-        result = withMethodRules(method, testRules, target, result);
-        result = withTestRules(method, testRules, result);
-
-        return result;
-    }
-
-    private Statement withMethodRules(FrameworkMethod method, List<TestRule> testRules,
-            Object target, Statement result) {
-        Statement withMethodRules = result;
-        for (org.junit.rules.MethodRule each : getMethodRules(target)) {
-            if (!(each instanceof TestRule && testRules.contains(each))) {
-                withMethodRules = each.apply(withMethodRules, method, target);
-            }
+    private Statement withRules(FrameworkMethod method, Object target, Statement statement) {
+        // Get the lists of rules, store them in thread local data so that they can be accessed
+        // from the getTestRules() and getMethodRules() methods which may be overridden. Call those
+        // methods to get the lists just in case they were overridden and then wrap them back up
+        // in an InstanceList again.
+        InstanceRules instanceRules = new InstanceRules(getTestClass(), target);
+        perThreadInstanceRules.set(instanceRules);
+        try {
+            List<TestRule> testRules = getTestRules(target);
+            List<MethodRule> methodRules = getMethodRules(target);
+            instanceRules = new InstanceRules(testRules, methodRules);
+        } finally {
+            perThreadInstanceRules.set(null);
         }
-        return withMethodRules;
+
+        return instanceRules.apply(statement, describeChild(method), method, target);
     }
 
     private List<org.junit.rules.MethodRule> getMethodRules(Object target) {
@@ -433,27 +433,73 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      *         test
      */
     protected List<MethodRule> rules(Object target) {
-        List<MethodRule> rules = getTestClass().getAnnotatedMethodValues(target, 
-                Rule.class, MethodRule.class);
-
-        rules.addAll(getTestClass().getAnnotatedFieldValues(target,
-                Rule.class, MethodRule.class));
-
-        return rules;
+        return perThreadInstanceRules.get().methodRules;
     }
 
     /**
-     * Returns a {@link Statement}: apply all non-static fields
-     * annotated with {@link Rule}.
-     *
-     * @param statement The base statement
-     * @return a RunRules statement if any class-level {@link Rule}s are
-     *         found, or the base statement
+     * Encapsulates the instance rules
      */
-    private Statement withTestRules(FrameworkMethod method, List<TestRule> testRules,
-            Statement statement) {
-        return testRules.isEmpty() ? statement :
-                new RunRules(statement, testRules, describeChild(method));
+    private static class InstanceRules {
+        private final List<TestRule> testRules;
+        private final List<MethodRule> methodRules;
+
+        /**
+         * Scans the {@link TestClass} for members annotated with {@link Rule @Rule}, obtains the
+         * value and adds them into an appropriate type specific list.
+         */
+        public InstanceRules(TestClass testClass, Object target) {
+            testRules = new ArrayList<TestRule>();
+            methodRules = new ArrayList<MethodRule>();
+
+            for (Object testRule : testClass.getAnnotatedMethodValues(
+                    target, Rule.class, Object.class)) {
+                addRule(testRule);
+            }
+
+            for (Object testRule : testClass.getAnnotatedFieldValues(
+                    target, Rule.class, Object.class)) {
+                addRule(testRule);
+            }
+        }
+
+        public InstanceRules(List<TestRule> testRules, List<MethodRule> methodRules) {
+            this.testRules = testRules;
+            this.methodRules = methodRules;
+        }
+
+        public void addRule(Object testRule) {
+            if (testRule instanceof TestRule) {
+                testRules.add((TestRule) testRule);
+            } else if (testRule instanceof MethodRule) {
+                methodRules.add((MethodRule) testRule);
+            } else {
+                // Should never happen as @Rule annotated members have already been validated
+                // to make sure they return the correct type.
+                throw new IllegalStateException("TestRule " + testRule
+                        + " is not a TestRule or MethodRule");
+            }
+        }
+
+        /**
+         * Applies the rules, MethodRules first, then TestRules.
+         *
+         * @param base the base statement.
+         * @param description the description of the test.
+         * @param method the FrameworkMethod.
+         * @param target the target test object
+         * @return the wrapping {@link Statement}.
+         */
+        public Statement apply(Statement base, Description description, FrameworkMethod method,
+                               Object target) {
+            Statement result = base;
+            for (MethodRule methodRule : methodRules) {
+                result = methodRule.apply(result, method, target);
+            }
+            for (TestRule testRule : testRules) {
+                result = testRule.apply(result, description);
+            }
+            return result;
+        }
     }
 
     /**
@@ -462,13 +508,7 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      *         test
      */
     protected List<TestRule> getTestRules(Object target) {
-        List<TestRule> result = getTestClass().getAnnotatedMethodValues(target,
-                Rule.class, TestRule.class);
-
-        result.addAll(getTestClass().getAnnotatedFieldValues(target,
-                Rule.class, TestRule.class));
-
-        return result;
+        return perThreadInstanceRules.get().testRules;
     }
 
     private Class<? extends Throwable> getExpectedException(Test annotation) {
