@@ -9,6 +9,7 @@ import org.junit.internal.requests.SortingRequest;
 import org.junit.internal.runners.ErrorReportingRunner;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runners.model.InitializationError;
+import org.junit.runners.model.RunnerParams;
 
 /**
  * A <code>Request</code> is an abstract description of tests to be run. Older versions of
@@ -70,8 +71,23 @@ public abstract class Request {
      * @return a <code>Request</code> that will cause all tests in the classes to be run
      */
     public static Request classes(Computer computer, Class<?>... classes) {
+        return classes(RunnerParams.emptyParams(), computer, classes);
+    }
+
+    /**
+     * Create a <code>Request</code> that, when processed, will run all the tests
+     * in a set of classes.
+     *
+     * @param params the {@link RunnerParams}
+     * @param computer Helps construct Runners from classes
+     * @param classes the classes containing the tests
+     * @return a <code>Request</code> that will cause all tests in the classes to be run
+     *
+     * @since 4.13
+     */
+    public static Request classes(RunnerParams params, Computer computer, Class<?>... classes) {
         try {
-            AllDefaultPossibilitiesBuilder builder = new AllDefaultPossibilitiesBuilder(true);
+            AllDefaultPossibilitiesBuilder builder = new AllDefaultPossibilitiesBuilder(params);
             Runner suite = computer.getSuite(builder, classes);
             return runner(suite);
         } catch (InitializationError e) {

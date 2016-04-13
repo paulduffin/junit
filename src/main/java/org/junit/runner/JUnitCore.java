@@ -7,6 +7,7 @@ import org.junit.internal.TextListener;
 import org.junit.internal.runners.JUnit38ClassRunner;
 import org.junit.runner.notification.RunListener;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.model.RunnerParams;
 
 /**
  * <code>JUnitCore</code> is a facade for running tests. It supports running JUnit 4 tests,
@@ -23,6 +24,7 @@ import org.junit.runner.notification.RunNotifier;
  */
 public class JUnitCore {
     private final RunNotifier notifier = new RunNotifier();
+    private final RunnerParams runnerParams;
 
     /**
      * Run the tests contained in the classes named in the <code>args</code>.
@@ -60,6 +62,17 @@ public class JUnitCore {
      */
     public static Result runClasses(Computer computer, Class<?>... classes) {
         return new JUnitCore().run(computer, classes);
+    }
+
+    /**
+     * @since 4.13
+     */
+    public JUnitCore(RunnerParams runnerParams) {
+        this.runnerParams = runnerParams;
+    }
+
+    public JUnitCore() {
+        runnerParams = RunnerParams.emptyParams();
     }
 
     /**
@@ -102,7 +115,7 @@ public class JUnitCore {
      * @return a {@link Result} describing the details of the test run and the failed tests.
      */
     public Result run(Computer computer, Class<?>... classes) {
-        return run(Request.classes(computer, classes));
+        return run(Request.classes(runnerParams, computer, classes));
     }
 
     /**
