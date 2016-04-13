@@ -24,6 +24,7 @@ import org.junit.internal.runners.statements.InvokeMethod;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
 import org.junit.rules.MethodRule;
+import org.junit.rules.TargetedTestRule;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
@@ -413,9 +414,10 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
         InstanceRules instanceRules = new InstanceRules(getTestClass(), target);
         perThreadInstanceRules.set(instanceRules);
         try {
+            List<TargetedTestRule> targetedTestRules = getTargetedTestRules(target);
             List<TestRule> testRules = getTestRules(target);
             List<MethodRule> methodRules = getMethodRules(target);
-            instanceRules = new InstanceRules(testRules, methodRules);
+            instanceRules = new InstanceRules(targetedTestRules, testRules, methodRules);
         } finally {
             perThreadInstanceRules.set(null);
         }
@@ -440,6 +442,7 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      * Encapsulates the instance rules
      */
     private static class InstanceRules {
+        private final List<TargetedTestRule> targetedTestRules;
         private final List<TestRule> testRules;
         private final List<MethodRule> methodRules;
 
@@ -448,6 +451,7 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
          * value and adds them into an appropriate type specific list.
          */
         public InstanceRules(TestClass testClass, Object target) {
+            targetedTestRules = new ArrayList<TargetedTestRule>();
             testRules = new ArrayList<TestRule>();
             methodRules = new ArrayList<MethodRule>();
 
@@ -462,13 +466,17 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
             }
         }
 
-        public InstanceRules(List<TestRule> testRules, List<MethodRule> methodRules) {
+        public InstanceRules(List<TargetedTestRule> targetedTestRules, List<TestRule> testRules,
+                             List<MethodRule> methodRules) {
+            this.targetedTestRules = targetedTestRules;
             this.testRules = testRules;
             this.methodRules = methodRules;
         }
 
         public void addRule(Object testRule) {
-            if (testRule instanceof TestRule) {
+            if (testRule instanceof TargetedTestRule) {
+                targetedTestRules.add((TargetedTestRule) testRule);
+            } else if (testRule instanceof TestRule) {
                 testRules.add((TestRule) testRule);
             } else if (testRule instanceof MethodRule) {
                 methodRules.add((MethodRule) testRule);
@@ -481,7 +489,7 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
         }
 
         /**
-         * Applies the rules, MethodRules first, then TestRules.
+         * Applies the rules, MethodRules first, then TestRules, finally TargetedTestRules
          *
          * @param base the base statement.
          * @param description the description of the test.
@@ -498,6 +506,9 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
             for (TestRule testRule : testRules) {
                 result = testRule.apply(result, description);
             }
+        for (TargetedTestRule targetedTestRule : targetedTestRules) {
+            result = targetedTestRule.apply(result, description, target);
+        }
             return result;
         }
     }
@@ -509,6 +520,15 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
      */
     protected List<TestRule> getTestRules(Object target) {
         return perThreadInstanceRules.get().testRules;
+    }
+
+    /**
+     * @param target the test case instance
+     * @return a list of TargetedTestRules that should be applied when executing this
+     *         test
+     */
+    protected List<TargetedTestRule> getTargetedTestRules(Object target) {
+        return perThreadInstanceRules.get().targetedTestRules;
     }
 
     private Class<? extends Throwable> getExpectedException(Test annotation) {

@@ -12,6 +12,7 @@ import java.util.List;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestClass;
@@ -103,21 +104,36 @@ public class RuleMemberValidatorTest {
     public void rejectClassRuleThatReturnsImplementationOfMethodRule() {
         TestClass target = new TestClass(TestWithClassRuleMethodThatReturnsMethodRule.class);
         CLASS_RULE_METHOD_VALIDATOR.validate(target, errors);
-        assertOneErrorWithMessage("The @ClassRule 'methodRule' must return an implementation of TestRule.");
+        assertOneErrorWithMessage(
+                "The @ClassRule 'methodRule' must return an implementation of TestRule.");
     }
 
     public static class TestWithClassRuleMethodThatReturnsMethodRule {
         @ClassRule
         public static MethodRule methodRule() {
-            return new MethodRule() {
-                
-                public Statement apply(Statement base, FrameworkMethod method, Object target) {
-                    return base;
-                }
-            };
+            return new SomeMethodRule();
         }
     }
-    
+
+    /**
+     * If there is any method annotated with @ClassRule then it must return an
+     * implementation of {@link TestRule}
+     */
+    @Test
+    public void rejectClassRuleThatReturnsImplementationOfTargetedTestRule() {
+        TestClass target = new TestClass(TestWithClassRuleMethodThatReturnsTargetedTestRule.class);
+        CLASS_RULE_METHOD_VALIDATOR.validate(target, errors);
+        assertOneErrorWithMessage(
+                "The @ClassRule 'targetedTestRule' must return an implementation of TestRule.");
+    }
+
+    public static class TestWithClassRuleMethodThatReturnsTargetedTestRule {
+        @ClassRule
+        public static TargetedTestRule targetedTestRule() {
+            return new SomeTargetedTestRule();
+        }
+    }
+
     /**
      * If there is any property annotated with @ClassRule then it must implement
      * {@link TestRule}
@@ -193,7 +209,20 @@ public class RuleMemberValidatorTest {
         @Rule
         public static MethodRule someMethodRule = new SomeMethodRule();
     }
-    
+
+
+    @Test
+    public void rejectStaticTargetedTestRule() {
+        TestClass target = new TestClass(TestWithStaticTargetedTestRule.class);
+        RULE_VALIDATOR.validate(target, errors);
+        assertOneErrorWithMessage("The @Rule 'someTargetedTestRule' must not be static.");
+    }
+
+    public static class TestWithStaticTargetedTestRule {
+        @Rule
+        public static TargetedTestRule someTargetedTestRule = new SomeTargetedTestRule();
+    }
+
     @Test
     public void acceptMethodRule() throws Exception {
         TestClass target = new TestClass(TestWithMethodRule.class);
@@ -307,6 +336,20 @@ public class RuleMemberValidatorTest {
     }
 
     @Test
+    public void rejectMethodStaticTargetedTestRule() {
+        TestClass target = new TestClass(TestMethodWithStaticTargetedTestRule.class);
+        RULE_METHOD_VALIDATOR.validate(target, errors);
+        assertOneErrorWithMessage("The @Rule 'getSomeTargetedTestRule' must not be static.");
+    }
+
+    public static class TestMethodWithStaticTargetedTestRule {
+        @Rule
+        public static TargetedTestRule getSomeTargetedTestRule() {
+            return new SomeTargetedTestRule();
+        }
+    }
+
+    @Test
     public void methodAcceptMethodRuleMethod() throws Exception {
         TestClass target = new TestClass(MethodTestWithMethodRule.class);
         RULE_METHOD_VALIDATOR.validate(target, errors);
@@ -350,6 +393,13 @@ public class RuleMemberValidatorTest {
     
     private static final class SomeMethodRule implements MethodRule {
         public Statement apply(Statement base, FrameworkMethod method, Object target) {
+            return base;
+        }
+    }
+
+    private static final class SomeTargetedTestRule implements TargetedTestRule {
+        @Override
+        public Statement apply(Statement base, Description description, Object target) {
             return base;
         }
     }

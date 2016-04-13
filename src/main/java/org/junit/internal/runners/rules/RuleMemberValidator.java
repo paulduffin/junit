@@ -3,6 +3,7 @@ package org.junit.internal.runners.rules;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.MethodRule;
+import org.junit.rules.TargetedTestRule;
 import org.junit.rules.TestRule;
 import org.junit.runners.model.FrameworkMember;
 import org.junit.runners.model.TestClass;
@@ -135,11 +136,15 @@ public class RuleMemberValidator {
     }
 
     private static boolean isRuleType(FrameworkMember<?> member) {
-        return isMethodRule(member) || isTestRule(member);
+        return isMethodRule(member) || isTestRule(member) || isTargetedTestRule(member);
     }
 
     private static boolean isTestRule(FrameworkMember<?> member) {
         return TestRule.class.isAssignableFrom(member.getType());
+    }
+
+    private static boolean isTargetedTestRule(FrameworkMember<?> member) {
+        return TargetedTestRule.class.isAssignableFrom(member.getType());
     }
 
     private static boolean isMethodRule(FrameworkMember<?> member) {
@@ -165,7 +170,7 @@ public class RuleMemberValidator {
      */
     private static final class MemberMustBeNonStaticOrAlsoClassRule implements RuleValidator {
         public void validate(FrameworkMember<?> member, Class<? extends Annotation> annotation, List<Throwable> errors) {
-            boolean isMethodRuleMember = isMethodRule(member);
+            boolean mustNotBeStatic = isMethodRule(member) || isTargetedTestRule(member);
             boolean isClassRuleAnnotated = (member.getAnnotation(ClassRule.class) != null);
 
             // We disallow:
@@ -173,9 +178,9 @@ public class RuleMemberValidator {
             //  - static @Rule annotated members
             //    - UNLESS they're also @ClassRule annotated
             // Note that MethodRule cannot be annotated with @ClassRule
-            if (member.isStatic() && (isMethodRuleMember || !isClassRuleAnnotated)) {
+            if (member.isStatic() && (mustNotBeStatic || !isClassRuleAnnotated)) {
                 String message;
-                if (isMethodRule(member)) {
+                if (mustNotBeStatic) {
                     message = "must not be static.";
                 } else {
                     message = "must not be static or it must be annotated with @ClassRule.";
