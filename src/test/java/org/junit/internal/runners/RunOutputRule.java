@@ -43,6 +43,8 @@ public class RunOutputRule<T> implements TestRule {
 
     private final InitializationErrorStyle initializationErrorStyle;
 
+    private final AppenderRule appenderRule;
+
     /**
      * The currently active {@link ClassExpectationBuilderImpl}
      */
@@ -59,6 +61,13 @@ public class RunOutputRule<T> implements TestRule {
         private Filter filter = Filter.ALL;
 
         private InitializationErrorStyle initializationErrorStyle;
+
+        private AppenderRule appenderRule = new AppenderRule() {
+            @Override
+            public Appender apply(Appender base, Description description, String target) {
+                return base;
+            }
+        };
 
         private Builder() {
         }
@@ -78,6 +87,11 @@ public class RunOutputRule<T> implements TestRule {
             return this;
         }
 
+        public Builder<T> appenderRule(AppenderRule appenderRule) {
+            this.appenderRule = appenderRule;
+            return this;
+        }
+
         public RunOutputRule<T> build() {
             return new RunOutputRule<T>(this);
         }
@@ -92,10 +106,19 @@ public class RunOutputRule<T> implements TestRule {
         }
     }
 
+    public interface Appender {
+        void append(StringBuilder builder);
+    }
+
+    public interface AppenderRule {
+        Appender apply(Appender base, Description description, String target);
+    }
+
     private RunOutputRule(Builder<T> builder) {
         this.runTest = builder.runTest;
         this.filter = builder.filter;
         this.initializationErrorStyle = builder.initializationErrorStyle;
+        this.appenderRule = builder.appenderRule;
     }
 
     /**
@@ -177,7 +200,7 @@ public class RunOutputRule<T> implements TestRule {
                 }
 
                 @Override
-                public void appendExpectations(StringBuilder builder) {
+                public void appendExpectations(AppenderRule appenderRule, StringBuilder builder) {
                     builder.append(message).append("\n");
                 }
             });
@@ -244,7 +267,7 @@ public class RunOutputRule<T> implements TestRule {
 
             StringBuilder builder = new StringBuilder();
             for (SuiteExpectation suiteExpectation : expectations) {
-                suiteExpectation.appendExpectations(builder);
+                suiteExpectation.appendExpectations(runOutputRule.appenderRule, builder);
             }
 
             runOutputRule.runTest.runTest(test, DescriptionComparators.DESCRIPTION_BY_CLASS_FIRST);
@@ -297,7 +320,7 @@ public class RunOutputRule<T> implements TestRule {
             Collections.sort(testExpectations, DescriptionComparators.DESCRIBABLE_BY_CLASS_FIRST);
 
             StringBuilder builder = new StringBuilder();
-            appendExpectations(builder);
+            appendExpectations(runOutputRule.appenderRule, builder);
 
             runOutputRule.runTest.runTest(test, DescriptionComparators.DESCRIPTION_BY_CLASS_FIRST);
 
@@ -329,7 +352,7 @@ public class RunOutputRule<T> implements TestRule {
     private interface SuiteExpectation {
         void initializeDescription(InitializationErrorStyle initializationErrorStyle);
 
-        void appendExpectations(StringBuilder builder);
+        void appendExpectations(AppenderRule appenderRule, StringBuilder builder);
     }
 
     /**
@@ -363,9 +386,9 @@ public class RunOutputRule<T> implements TestRule {
             }
         }
 
-        public void appendExpectations(StringBuilder builder) {
+        public void appendExpectations(AppenderRule appenderRule, StringBuilder builder) {
             for (TestExpectation testExpectation : testExpectations) {
-                testExpectation.appendExpectedOutput(builder);
+                testExpectation.appendExpectedOutput(appenderRule, builder);
             }
         }
     }
@@ -520,16 +543,38 @@ public class RunOutputRule<T> implements TestRule {
             return description;
         }
 
-        public void appendExpectedOutput(StringBuilder builder) {
+        public void appendExpectedOutput(AppenderRule appenderRule, StringBuilder builder) {
             builder.append("start - ").append(description).append("\n");
-            if (output != null) {
-                builder.append(output).append("\n");
+            String target = testClass.getSimpleName();
+
+            // The test output.
+            Appender appender = new Appender() {
+                @Override
+                public void append(StringBuilder builder) {
+                    if (output != null) {
+                        builder.append(output).append("\n");
+                    }
+                }
+            };
+            if (!resultType.isInitialization()) {
+                // Apply any global rules to the test output unless it is an initialization error.
+                appender = appenderRule.apply(appender, description, target);
             }
-            if (resultType.isFailure()) {
-                builder.append("failure - ");
-            }
-            if (errorMessage != null) {
-                builder.append(errorMessage).append("\n");
+            appender.append(builder);
+
+            if (resultType != ResultType.PASS) {
+                appender = new Appender() {
+                    @Override
+                    public void append(StringBuilder builder) {
+                        if (resultType.isFailure()) {
+                            builder.append("failure - ");
+                        }
+                        if (errorMessage != null) {
+                            builder.append(errorMessage).append("\n");
+                        }
+                    }
+                };
+                appender.append(builder);
             }
             builder.append("end - ").append(description).append("\n");
         }

@@ -1,6 +1,8 @@
 package org.junit.runners.model;
 
 import org.junit.internal.runners.InitializationErrorStyle;
+import org.junit.rules.TargetedRuleChain;
+import org.junit.rules.TargetedTestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.RunnerParams.Key;
 
@@ -39,4 +41,11 @@ public class Keys {
             Key.of(InitializationErrorStyle.class,
                     "org.junit.runners.model.JUnit3InitializationErrorStyle",
                     InitializationErrorStyle.JUNIT3_WARNING);
+
+    /**
+     * Provides rules that are applied to all tests.
+     */
+    public static final Key<TargetedTestRule> TARGETED_TEST_RULE_KEY = Key.of(
+            TargetedTestRule.class, TargetedTestRule.class.getName(),
+            TargetedRuleChain.emptyRuleChain());
 }

@@ -9,6 +9,7 @@ import org.junit.internal.runners.RunOutputRule.SuiteExpectations;
 import org.junit.internal.runners.junit4.tests.InvalidTestMethod;
 import org.junit.internal.runners.junit4.tests.InvalidTestMethodRunWithJUnit4;
 import org.junit.internal.runners.junit4.tests.InvalidTestMethodRunWithParameterized;
+import org.junit.internal.runners.junit4.tests.ValidTest;
 import org.junit.runner.RunTests;
 import org.junit.runners.model.InitializationValidation;
 import org.junit.runners.model.RunnerParams;
@@ -97,5 +98,12 @@ public class AbstractJUnit4CompatibilityTest {
                     .test("validMethod[1: -2]")
                     .passed();
         }}).check(InvalidTestMethodRunWithParameterized.class);
+    }
+
+    @Test
+    public void validTest() throws Exception {
+        runOutputRule.forClass(ValidTest.class)
+                .test("validMethod").output("validMethod").passed()
+                .check(ValidTest.class);
     }
 }

@@ -422,7 +422,14 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
             perThreadInstanceRules.set(null);
         }
 
-        return instanceRules.apply(statement, describeChild(method), method, target);
+        Description description = describeChild(method);
+
+        // Apply any rules specified within the test itself.
+        Statement result = instanceRules.apply(statement, description, method, target);
+
+        // Apply any globally provided rules.
+        TargetedTestRule targetedTestRule = getRunnerParams().get(Keys.TARGETED_TEST_RULE_KEY);
+        return targetedTestRule.apply(result, description, target);
     }
 
     private List<org.junit.rules.MethodRule> getMethodRules(Object target) {
