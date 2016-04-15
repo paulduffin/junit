@@ -68,7 +68,7 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
 
     protected RunnerBuilder suiteMethodBuilder() {
         if (canUseSuiteMethod) {
-            return new SuiteMethodBuilder();
+            return new SuiteMethodBuilder(getRunnerParams());
         }
         return new NullBuilder();
     }

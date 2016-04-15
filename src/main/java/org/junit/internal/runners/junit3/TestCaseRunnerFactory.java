@@ -46,8 +46,10 @@ import java.util.List;
 public class TestCaseRunnerFactory implements TestFactory<TestCase, Runner, DescribableStatement> {
 
     private final InitializationErrorStyle initializationErrorStyle;
+    private final RunnerParams runnerParams;
 
     public TestCaseRunnerFactory(RunnerParams runnerParams) {
+        this.runnerParams = runnerParams;
         this.initializationErrorStyle =
                 runnerParams.get(Keys.JUNIT3_INITIALIZATION_ERROR_STYLE_KEY);
     }
@@ -57,7 +59,8 @@ public class TestCaseRunnerFactory implements TestFactory<TestCase, Runner, Desc
                                            Annotation[] annotations) {
         Description description =
                 Description.createTestDescription(testClass, methodName, annotations);
-        return JUnit3Statements.createAndRunTestCase(description, testClass, methodName);
+        return JUnit3Statements.createAndRunTestCase(
+                runnerParams, description, testClass, methodName);
     }
 
     @Override

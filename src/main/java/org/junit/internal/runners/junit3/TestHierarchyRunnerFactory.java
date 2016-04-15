@@ -9,6 +9,8 @@ import org.junit.runner.Runner;
 import org.junit.runner.StatementRunner;
 import org.junit.runners.Suite;
 import org.junit.runners.model.InitializationError;
+import org.junit.runners.model.RunnerParams;
+import org.junit.runners.model.Statement;
 
 import java.util.List;
 
@@ -36,6 +38,12 @@ import java.util.List;
  */
 public class TestHierarchyRunnerFactory implements TestHierarchyFactory<Runner> {
 
+    private final RunnerParams runnerParams;
+
+    public TestHierarchyRunnerFactory(RunnerParams runnerParams) {
+        this.runnerParams = runnerParams;
+    }
+
     @Override
     public Runner createSuite(String name, List<Runner> children) {
         try {
@@ -47,11 +55,15 @@ public class TestHierarchyRunnerFactory implements TestHierarchyFactory<Runner> 
 
     @Override
     public Runner createTestCase(final TestCase testCase, Description description) {
-        return new StatementRunner(description, JUnit3Statements.runTestCase(testCase));
+        Statement statement = JUnit3Statements.runTestCase(testCase);
+        // Defer the application of the global test rules until just before it is run.
+        statement = JUnit3Statements.deferApplyGlobalRules(
+                runnerParams, statement, description, testCase);
+        return new StatementRunner(description, statement);
     }
 
     @Override
     public Runner createCustomTest(final Test test, final Description description) {
-        return new JUnit38ClassRunner(test);
+        return new JUnit38ClassRunner(runnerParams, test);
     }
 }

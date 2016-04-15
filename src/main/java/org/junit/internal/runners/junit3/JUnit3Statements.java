@@ -6,6 +6,8 @@ import org.junit.runner.DescribableStatement;
 import org.junit.runner.Description;
 import org.junit.runner.manipulation.Filterable;
 import org.junit.runner.manipulation.Sortable;
+import org.junit.runners.model.Keys;
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.Statement;
 
 /**
@@ -21,8 +23,15 @@ public class JUnit3Statements {
     }
 
     public static DescribableStatement createAndRunTestCase(
-            Description description, Class<? extends TestCase> testClass, String methodName) {
-        return new CreateAndRunTestCaseStatement(description, testClass, methodName);
+            RunnerParams runnerParams, Description description, Class<? extends TestCase> testClass,
+            String methodName) {
+        return new CreateAndRunTestCaseStatement(runnerParams, description, testClass, methodName);
+    }
+
+    public static Statement deferApplyGlobalRules(
+            RunnerParams runnerParams, Statement statement, Description description,
+            TestCase test) {
+        return new ApplyGlobalRulesStatement(runnerParams, statement, description, test);
     }
 
     /**
@@ -53,12 +62,15 @@ public class JUnit3Statements {
      * Creates a {@link TestCase} instance and runs a method in it.
      */
     private static class CreateAndRunTestCaseStatement extends DescribableStatement {
+        private final RunnerParams runnerParams;
         private final Class<? extends TestCase> testClass;
         private final String name;
 
         public CreateAndRunTestCaseStatement(
-                Description description, Class<? extends TestCase> testClass, String name) {
+                RunnerParams runnerParams, Description description,
+                Class<? extends TestCase> testClass, String name) {
             super(description);
+            this.runnerParams = runnerParams;
             this.testClass = testClass;
             this.name = name;
         }
@@ -73,6 +85,29 @@ public class JUnit3Statements {
             TestCase test = (TestCase) TestSuite.createTest(testClass, name);
 
             Statement statement = runTestCase(test);
+            statement = deferApplyGlobalRules(runnerParams, statement, this.getDescription(), test);
+            statement.evaluate();
+        }
+    }
+
+    private static class ApplyGlobalRulesStatement extends Statement {
+        private final RunnerParams runnerParams;
+        private final Statement base;
+        private final Description description;
+        private final Object test;
+
+        public ApplyGlobalRulesStatement(
+                RunnerParams runnerParams, Statement base, Description description, Object test) {
+            this.runnerParams = runnerParams;
+            this.base = base;
+            this.description = description;
+            this.test = test;
+        }
+
+        @Override
+        public void evaluate() throws Throwable {
+            Statement statement = runnerParams.get(Keys.TARGETED_TEST_RULE_KEY)
+                    .apply(base, description, test);
             statement.evaluate();
         }
     }

@@ -9,6 +9,8 @@ import junit.framework.TestSuite;
 import org.junit.internal.builders.JUnit3Builder;
 import org.junit.internal.builders.SuiteMethodBuilder;
 import org.junit.internal.runners.ExcludeParameterizedMethodsByName;
+import org.junit.internal.runners.LoggingAppenderRule;
+import org.junit.internal.runners.LoggingTargetedTestRule;
 import org.junit.internal.runners.RunOutputRule;
 import org.junit.internal.runners.RunOutputRule.Builder;
 import org.junit.internal.runners.RunOutputRule.RunTest;
@@ -143,6 +145,23 @@ public class JUnit3CompatibilityTest extends AbstractJUnit3CompatibilityTest {
                                                 .build()))
                                 .filter(DOES_NOT_SUPPORT_CUSTOM_TEST_OR_NOT_TEST)
                                 .initializationErrorStyle(JUNIT4_INITIALIZATION_ERROR),
+                },
+
+                // Apply global rule.
+                {
+                        runJunit3Builder()
+                                .runTest(RunTests.runWithJUnitCore(
+                                        RunnerParams.builder()
+                                                .put(Keys.TARGETED_TEST_RULE_KEY,
+                                                        new LoggingTargetedTestRule())
+                                                .build()))
+                                .filter(DOES_NOT_SUPPORT_CUSTOM_TEST_OR_NOT_TEST
+                                        // Exclude these tests because they contain custom tests
+                                        // that aren't supported with global rules.
+                                        .intersect(new ExcludeParameterizedMethodsByName(
+                                                "suiteMethodWithCustomTests",
+                                                "testCaseOverrideRun")))
+                                .appenderRule(new LoggingAppenderRule()),
                 },
         });
     }

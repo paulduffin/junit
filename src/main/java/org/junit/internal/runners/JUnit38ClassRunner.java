@@ -17,6 +17,8 @@ import org.junit.runner.manipulation.Sortable;
 import org.junit.runner.manipulation.Sorter;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.model.Keys;
+import org.junit.runners.model.RunnerParams;
 import org.junit.runners.model.Statement;
 
 import java.lang.annotation.Annotation;
@@ -70,6 +72,8 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         }
     }
 
+    private final RunnerParams runnerParams;
+
     private volatile Test test;
 
     /**
@@ -79,11 +83,26 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
     private volatile Description savedDescription;
 
     public JUnit38ClassRunner(Class<?> klass) {
-        this(new TestSuite(klass.asSubclass(TestCase.class)));
+        this(RunnerParams.emptyParams(), klass);
+    }
+
+    /**
+     * @since 4.13
+     */
+    public JUnit38ClassRunner(RunnerParams runnerParams, Class<?> klass) {
+        this(runnerParams, new TestSuite(klass.asSubclass(TestCase.class)));
     }
 
     public JUnit38ClassRunner(Test test) {
+        this(RunnerParams.emptyParams(), test);
+    }
+
+    /**
+     * @since 4.13
+     */
+    public JUnit38ClassRunner(RunnerParams runnerParams, Test test) {
         super();
+        this.runnerParams = runnerParams;
         setTest(test);
     }
 
@@ -107,6 +126,14 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         // Clear the test so that when this method returns it can be GCed.
         setTest(null);
 
+        // Apply the global rules to check if there are any, if there are then fail as they are
+        // not supported on custom tests..
+        Statement withGlobalRules = runnerParams.get(Keys.TARGETED_TEST_RULE_KEY)
+                .apply(statement, savedDescription, test);
+        if (withGlobalRules != statement) {
+            throw new IllegalStateException("Global rules cannot be applied to " + savedDescription
+                    + " as it is a custom test and so the behavior would be undefined.");
+        }
         try {
             // This should not fail because test.run(TestResult) should catch all exceptions
             // and report them through the path:

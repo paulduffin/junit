@@ -31,7 +31,7 @@ public class JUnit3Builder extends RunnerBuilder {
         }
 
         if (isPre4Test(testClass)) {
-            return new JUnit38ClassRunner(testClass);
+            return new JUnit38ClassRunner(runnerParams, testClass);
         }
         return null;
     }
