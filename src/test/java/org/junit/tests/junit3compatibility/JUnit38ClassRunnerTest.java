@@ -22,6 +22,7 @@ import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runner.manipulation.NoTestsRemainException;
+import org.junit.runner.notification.RunNotifier;
 
 public class JUnit38ClassRunnerTest {
     public static class MyTest extends TestCase {
@@ -118,6 +119,14 @@ public class JUnit38ClassRunnerTest {
     public void getDescriptionWithAnnotationInSuper() {
         JUnit38ClassRunner runner = new JUnit38ClassRunner(DerivedAnnotatedMethod.class);
         assertAnnotationFiltering(runner);
+    }
+
+    @Test
+    public void getDescriptionAfterRunningTest() {
+        JUnit38ClassRunner runner = new JUnit38ClassRunner(OneTest.class);
+        runner.run(new RunNotifier());
+        Description description = runner.getDescription();
+        assertEquals(Description.createSuiteDescription(OneTest.class), description);
     }
 
     private void assertAnnotationFiltering(JUnit38ClassRunner runner) {

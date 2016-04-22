@@ -71,6 +71,12 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
 
     private volatile Test test;
 
+    /**
+     * The description that was saved so that the test object could be discarded after the tests
+     * were run.
+     */
+    private volatile Description savedDescription;
+
     public JUnit38ClassRunner(Class<?> klass) {
         this(new TestSuite(klass.asSubclass(TestCase.class)));
     }
@@ -82,9 +88,17 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
 
     @Override
     public void run(RunNotifier notifier) {
+        Test test = getTest();
+
+        // Save the description away so that it can be used after the test has been discarded.
+        savedDescription = getDescription();
+
+        // Clear the test so that when this method returns it can be GCed.
+        setTest(null);
+
         TestResult result = new TestResult();
         result.addListener(createAdaptingListener(notifier));
-        getTest().run(result);
+        test.run(result);
     }
 
     public TestListener createAdaptingListener(final RunNotifier notifier) {
@@ -93,7 +107,8 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
 
     @Override
     public Description getDescription() {
-        return makeDescription(getTest());
+        Test test = getTest();
+        return test == null ? savedDescription : makeDescription(test);
     }
 
     public static Description makeDescription(Test test) {
@@ -131,8 +146,8 @@ public class JUnit38ClassRunner extends Runner implements Filterable, Sortable {
         try {
             Method m = test.getClass().getMethod(test.getName());
             return m.getDeclaredAnnotations();
-        } catch (SecurityException e) {
-        } catch (NoSuchMethodException e) {
+        } catch (SecurityException ignored) {
+        } catch (NoSuchMethodException ignored) {
         }
         return new Annotation[0];
     }
